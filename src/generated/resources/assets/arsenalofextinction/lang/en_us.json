@@ -1,0 +1,10 @@
+{
+  "creativetab.arsenalofextinction.arsenal_tab": "AOE",
+  "death.attack.nuke_explosion": "%1$s was obliterated by a nuclear explosion",
+  "death.attack.nuke_explosion.player": "%1$s was obliterated by a nuclear explosion whilst fighting %2$s",
+  "death.attack.radiated": "%1$s died from radiation poisoning",
+  "death.attack.radiated.player": "%1$s died from radiation poisoning whilst fighting %2$s",
+  "effect.arsenalofextinction.radiated": "Radiated",
+  "item.arsenalofextinction.mod_icon": "Arsenal of Extinction",
+  "item.arsenalofextinction.nuke_caller": "Nuke Caller"
+}

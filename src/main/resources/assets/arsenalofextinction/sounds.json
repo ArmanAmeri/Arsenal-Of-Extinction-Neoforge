@@ -1,0 +1,14 @@
+{
+  "nuke_falling": {
+    "subtitle": "subtitles.arsenalofextinction.nuke_falling",
+    "sounds": [{ "name": "arsenalofextinction:nuke_falling" }]
+  },
+  "nuke_explosion": {
+    "subtitle": "subtitles.arsenalofextinction.nuke_explosion",
+    "sounds": [{ "name": "arsenalofextinction:nuke_explosion" }]
+  },
+  "nuke_rumble": {
+    "subtitle": "subtitles.arsenalofextinction.nuke_rumble",
+    "sounds": [{ "name": "arsenalofextinction:nuke_rumble" }]
+  }
+}
