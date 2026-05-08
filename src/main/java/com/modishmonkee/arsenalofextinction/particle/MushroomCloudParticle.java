@@ -10,10 +10,6 @@ import net.neoforged.api.distmarker.OnlyIn;
 @OnlyIn(Dist.CLIENT)
 public class MushroomCloudParticle extends TextureSheetParticle {
 
-    // ═════════════════════════════════════════════════════════════════════════
-    // TWEAK ZONE — adjust these to taste
-    // ═════════════════════════════════════════════════════════════════════════
-
     // ── Stem / cap ────────────────────────────────────────────────────────────
     private static final double STEM_BASE_OFFSET  = 25.0;
     private static final double STEM_HEIGHT       = 140.0;
@@ -40,15 +36,15 @@ public class MushroomCloudParticle extends TextureSheetParticle {
     private static final int    SMOKE_LIFETIME_VAR      = 40;
 
     // ── Shockwave ring ────────────────────────────────────────────────────────
-    private static final double SHOCKWAVE_HEIGHT_FRAC  = 0.65;
-    private static final double SHOCKWAVE_START_R      = STEM_RADIUS * 0.1;
-    private static final double SHOCKWAVE_END_R        = 200.0;
-    private static final double SHOCKWAVE_FADE_START   = 0.80;
-    private static final float  SHOCKWAVE_SIZE_START   = 5.0f;
-    private static final float  SHOCKWAVE_SIZE_END     = 25.0f;
-    private static final float  SHOCKWAVE_ALPHA        = 0.96f;
-    private static final int    SHOCKWAVE_LIFETIME     = 150;
-    private static final int    SHOCKWAVE_LIFETIME_VAR = 20;
+    private static final double SHOCKWAVE_HEIGHT_FRAC   = 0.65;
+    private static final double SHOCKWAVE_START_R       = STEM_RADIUS * 0.1;
+    private static final double SHOCKWAVE_END_R         = 200.0;
+    private static final double SHOCKWAVE_FADE_START    = 0.80;
+    private static final float  SHOCKWAVE_SIZE_START    = 5.0f;
+    private static final float  SHOCKWAVE_SIZE_END      = 25.0f;
+    private static final float  SHOCKWAVE_ALPHA         = 0.96f;
+    private static final int    SHOCKWAVE_LIFETIME      = 150;
+    private static final int    SHOCKWAVE_LIFETIME_VAR  = 20;
 
     // ═════════════════════════════════════════════════════════════════════════
 
@@ -65,7 +61,8 @@ public class MushroomCloudParticle extends TextureSheetParticle {
         super(level, x, y, z);
         this.sprites    = sprites;
         this.kind       = kind;
-        this.pickSprite(sprites);
+        // Start on first sprite frame — setSpriteFromAge will animate it in tick()
+        this.setSpriteFromAge(sprites);
 
         this.originX    = x;
         this.originY    = y;
@@ -119,6 +116,10 @@ public class MushroomCloudParticle extends TextureSheetParticle {
 
         double t = (double) age / lifetime;
 
+        // Animate through sprite frames based on this particle's own age —
+        // stem uses mushroom_0..3, cap uses mushroom_4..7 (separate sprite sets)
+        this.setSpriteFromAge(sprites);
+
         switch (kind) {
             case CLOUD -> {
                 if (age > lifetime - CLOUD_FADE_TICKS) {
@@ -128,19 +129,17 @@ public class MushroomCloudParticle extends TextureSheetParticle {
             case GROUND_SMOKE -> {
                 if (t >= SMOKE_FADE_START) {
                     double fadeFrac = (t - SMOKE_FADE_START) / (1.0 - SMOKE_FADE_START);
-                    alpha = Math.max(0f, (float) (0.8 * (1.0 - fadeFrac)));
+                    alpha = Math.max(0f, (float)(0.8 * (1.0 - fadeFrac)));
                 }
             }
             case SHOCKWAVE -> {
                 if (t >= SHOCKWAVE_FADE_START) {
                     double fadeFrac = (t - SHOCKWAVE_FADE_START) / (1.0 - SHOCKWAVE_FADE_START);
-                    alpha = Math.max(0f, (float) (SHOCKWAVE_ALPHA * (1.0 - fadeFrac)));
+                    alpha = Math.max(0f, (float)(SHOCKWAVE_ALPHA * (1.0 - fadeFrac)));
                 }
-                quadSize = SHOCKWAVE_SIZE_START + (float) (t * (SHOCKWAVE_SIZE_END - SHOCKWAVE_SIZE_START));
+                quadSize = SHOCKWAVE_SIZE_START + (float)(t * (SHOCKWAVE_SIZE_END - SHOCKWAVE_SIZE_START));
             }
         }
-
-        this.setSpriteFromAge(sprites);
 
         double[] pos = computePos(t);
         this.xo = pos[0]; this.x = pos[0];
@@ -157,13 +156,13 @@ public class MushroomCloudParticle extends TextureSheetParticle {
                 if (t < riseEnd) {
                     double p = t / riseEnd;
                     rCol = 1.0f;
-                    gCol = (float) (1.0 - p * 0.6);
-                    bCol = (float) (0.8 - p * 0.7);
+                    gCol = (float)(1.0 - p * 0.6);
+                    bCol = (float)(0.8 - p * 0.7);
                 } else {
                     double p = (t - riseEnd) / (1.0 - riseEnd);
-                    rCol = (float) (1.0  - p * 0.7);
-                    gCol = (float) (0.3  - p * 0.05);
-                    bCol = (float) (0.05 + p * 0.15);
+                    rCol = (float)(1.0  - p * 0.7);
+                    gCol = (float)(0.3  - p * 0.05);
+                    bCol = (float)(0.05 + p * 0.15);
                 }
             }
             case GROUND_SMOKE -> {
@@ -182,9 +181,9 @@ public class MushroomCloudParticle extends TextureSheetParticle {
 
     private double[] computePos(double t) {
         return switch (kind) {
-            case CLOUD       -> computeCloudPos(t);
+            case CLOUD        -> computeCloudPos(t);
             case GROUND_SMOKE -> computeSmokePos(t);
-            case SHOCKWAVE   -> computeShockwavePos(t);
+            case SHOCKWAVE    -> computeShockwavePos(t);
         };
     }
 
@@ -230,8 +229,6 @@ public class MushroomCloudParticle extends TextureSheetParticle {
                 ? ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT
                 : ParticleRenderType.PARTICLE_SHEET_OPAQUE;
     }
-
-    // ── Providers ─────────────────────────────────────────────────────────────
 
     @OnlyIn(Dist.CLIENT)
     public static class StemProvider implements ParticleProvider<SimpleParticleType> {

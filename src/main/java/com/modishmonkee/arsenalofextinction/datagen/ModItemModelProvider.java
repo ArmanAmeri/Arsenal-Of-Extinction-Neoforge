@@ -14,5 +14,7 @@ public class ModItemModelProvider extends ItemModelProvider {
 
     @Override
     protected void registerModels() {
+        basicItem(ModItems.NUKE_CALLER.getId());
+        basicItem(ModItems.MOD_ICON.getId());
     }
 }

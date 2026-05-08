@@ -46,6 +46,7 @@ public class NukeEntity extends Projectile {
 
     private float clientSmoothTick = 0f;
     private int lastKnownServerTick = 0;
+    private boolean hasExploded = false;
 
     public NukeEntity(EntityType<? extends NukeEntity> type, Level level) {
         super(type, level);
@@ -83,7 +84,7 @@ public class NukeEntity extends Projectile {
         double dy = targetY - this.getY();
         double dz = targetZ - this.getZ();
         double horizontalDist = Math.sqrt(dx * dx + dz * dz);
-        float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90.0f;
+        float yaw   = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90.0f;
         float pitch = (float) -Math.toDegrees(Math.atan2(dy, horizontalDist));
         this.setYRot(yaw);
         this.setXRot(pitch);
@@ -100,7 +101,7 @@ public class NukeEntity extends Projectile {
     }
 
     private Vec3 getControlPos() {
-        Vec3 start = getStartPos();
+        Vec3 start  = getStartPos();
         Vec3 target = getTargetPos();
         return new Vec3(
                 (start.x + target.x) / 2,
@@ -109,12 +110,12 @@ public class NukeEntity extends Projectile {
     }
 
     public Vec3 getBezierPoint(float t) {
-        Vec3 start = getStartPos();
+        Vec3 start   = getStartPos();
         Vec3 control = getControlPos();
-        Vec3 end = getTargetPos();
-        double x = (1 - t) * (1 - t) * start.x + 2 * (1 - t) * t * control.x + t * t * end.x;
-        double y = (1 - t) * (1 - t) * start.y + 2 * (1 - t) * t * control.y + t * t * end.y;
-        double z = (1 - t) * (1 - t) * start.z + 2 * (1 - t) * t * control.z + t * t * end.z;
+        Vec3 end     = getTargetPos();
+        double x = (1-t)*(1-t)*start.x + 2*(1-t)*t*control.x + t*t*end.x;
+        double y = (1-t)*(1-t)*start.y + 2*(1-t)*t*control.y + t*t*end.y;
+        double z = (1-t)*(1-t)*start.z + 2*(1-t)*t*control.z + t*t*end.z;
         return new Vec3(x, y, z);
     }
 
@@ -123,12 +124,11 @@ public class NukeEntity extends Projectile {
                 (start.x + target.x) / 2,
                 (start.y + target.y) / 2 + 80,
                 (start.z + target.z) / 2);
-
         Set<ChunkPos> chunks = new HashSet<>();
         for (int i = 0; i <= 500; i++) {
             float t = (float) i / 500;
-            double x = (1 - t) * (1 - t) * start.x + 2 * (1 - t) * t * control.x + t * t * target.x;
-            double z = (1 - t) * (1 - t) * start.z + 2 * (1 - t) * t * control.z + t * t * target.z;
+            double x = (1-t)*(1-t)*start.x + 2*(1-t)*t*control.x + t*t*target.x;
+            double z = (1-t)*(1-t)*start.z + 2*(1-t)*t*control.z + t*t*target.z;
             chunks.add(new ChunkPos((int) x >> 4, (int) z >> 4));
         }
         for (ChunkPos chunk : chunks) {
@@ -148,69 +148,78 @@ public class NukeEntity extends Projectile {
     public int getTotalTicks()  { return totalTicks; }
 
     private void applyPositionFromT(float t) {
-        if (t < 0f) t = 0f;
-        if (t > 1f) t = 1f;
+        if (t >= 1.0f || t <= 0.0f) return;
 
-        Vec3 pos = getBezierPoint(t);
-        this.setPos(pos.x, pos.y, pos.z);
+        Vec3 current = getBezierPoint(t);
+        Vec3 next    = getBezierPoint(Math.min(t + 1.0f / totalTicks, 1.0f));
 
-        if (t > 0f) {
-            float prevT = Math.max(0f, t - 0.01f);
-            Vec3 prev = getBezierPoint(prevT);
-            double dx = pos.x - prev.x;
-            double dy = pos.y - prev.y;
-            double dz = pos.z - prev.z;
-            double horizontalDist = Math.sqrt(dx * dx + dz * dz);
-            float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90.0f;
-            float pitch = (float) -Math.toDegrees(Math.atan2(dy, horizontalDist));
-            this.yRotO = this.getYRot();
-            this.xRotO = this.getXRot();
-            this.setYRot(wrapDegrees(yaw));
-            this.setXRot(wrapDegrees(pitch));
-        }
+        Vec3 direction = next.subtract(current).normalize();
+        double horizontalDist = Math.sqrt(direction.x * direction.x + direction.z * direction.z);
+
+        // Exact Forge: atan2(-direction.z, direction.x)
+        float targetYaw   = (float) Math.toDegrees(Math.atan2(-direction.z, direction.x)) - 90.0f;
+        float targetPitch = (float) -Math.toDegrees(Math.atan2(direction.y, horizontalDist));
+
+        this.yRotO = this.getYRot();
+        this.xRotO = this.getXRot();
+
+        // Exact Forge: smooth lerp factor 0.3f
+        float smoothYaw   = this.getYRot() + wrapDegrees(targetYaw - this.getYRot()) * 0.3f;
+        float smoothPitch = this.getXRot() + (targetPitch - this.getXRot()) * 0.3f;
+
+        this.setYRot(smoothYaw);
+        this.setXRot(smoothPitch);
+
+        this.setDeltaMovement(Vec3.ZERO);
+        this.setPos(current.x, current.y, current.z);
     }
 
     @Override
     public void tick() {
-        super.tick();
+        // Exact Forge: baseTick(), NOT super.tick()
+        this.baseTick();
+
+        Vec3 start = getStartPos();
+        // Exact Forge: guard until start pos synced
+        if (start.x == 0 && start.y == 0 && start.z == 0) return;
+
         if (!this.level().isClientSide) {
-            serverTick();
-        } else {
-            clientTick();
-        }
-    }
+            currentTick++;
+            this.entityData.set(CURRENT_TICK, currentTick);
 
-    private void serverTick() {
-        if (currentTick == 0) {
-            this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
-                    ModSounds.NUKE_FALLING.get(), SoundSource.HOSTILE, 8.0f, 1.0f);
-        }
-
-        if (currentTick >= totalTicks) {
-            onReachTarget();
-            return;
-        }
-
-        currentTick++;
-        this.entityData.set(CURRENT_TICK, currentTick);
-        float t = (float) currentTick / totalTicks;
-        applyPositionFromT(t);
-    }
-
-    private void clientTick() {
-        int serverTick = this.entityData.get(CURRENT_TICK);
-        if (serverTick != lastKnownServerTick) {
-            if (Math.abs(serverTick - clientSmoothTick) > 5) {
-                clientSmoothTick = serverTick;
+            // Exact Forge: sound at tick 5, SoundSource.MASTER, volume 100f
+            if (currentTick == 5) {
+                if (this.level() instanceof ServerLevel serverLevel) {
+                    serverLevel.playSound(null, this.getX(), this.getY(), this.getZ(),
+                            ModSounds.NUKE_FALLING.get(),
+                            SoundSource.MASTER, 100.0f, 1.0f);
+                }
             }
-            lastKnownServerTick = serverTick;
+
+            float t = (float) currentTick / totalTicks;
+            if (t >= 1.0f) {
+                onReachTarget();
+                return;
+            }
+            applyPositionFromT(t);
+
+        } else {
+            int serverTick = this.entityData.get(CURRENT_TICK);
+
+            if (serverTick > lastKnownServerTick) {
+                // Exact Forge: snap threshold 2.0f
+                if (serverTick - clientSmoothTick > 2.0f) {
+                    clientSmoothTick = serverTick;
+                }
+                lastKnownServerTick = serverTick;
+            }
+
+            clientSmoothTick += 1.0f;
+            clientSmoothTick = Math.min(clientSmoothTick, totalTicks - 1f);
+
+            float t = clientSmoothTick / totalTicks;
+            applyPositionFromT(t);
         }
-
-        clientSmoothTick += 1.0f;
-        clientSmoothTick = Math.min(clientSmoothTick, totalTicks - 1f);
-
-        float t = clientSmoothTick / totalTicks;
-        applyPositionFromT(t);
     }
 
     private float wrapDegrees(float degrees) {
@@ -219,8 +228,6 @@ public class NukeEntity extends Projectile {
         if (degrees < -180.0f) degrees += 360.0f;
         return degrees;
     }
-
-    private boolean hasExploded = false;
 
     private void onReachTarget() {
         if (hasExploded) return;
@@ -270,15 +277,15 @@ public class NukeEntity extends Projectile {
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         Vec3 target = getTargetPos();
-        Vec3 start = getStartPos();
+        Vec3 start  = getStartPos();
         tag.putDouble("targetX", target.x);
         tag.putDouble("targetY", target.y);
         tag.putDouble("targetZ", target.z);
-        tag.putDouble("startX", start.x);
-        tag.putDouble("startY", start.y);
-        tag.putDouble("startZ", start.z);
+        tag.putDouble("startX",  start.x);
+        tag.putDouble("startY",  start.y);
+        tag.putDouble("startZ",  start.z);
         tag.putInt("currentTick", currentTick);
-        tag.putInt("totalTicks", totalTicks);
+        tag.putInt("totalTicks",  totalTicks);
     }
 
     @Override
@@ -293,8 +300,8 @@ public class NukeEntity extends Projectile {
             this.entityData.set(START_Y, (float) tag.getDouble("startY"));
             this.entityData.set(START_Z, (float) tag.getDouble("startZ"));
         }
-        this.currentTick = tag.getInt("currentTick");
-        this.totalTicks  = tag.getInt("totalTicks");
+        this.currentTick         = tag.getInt("currentTick");
+        this.totalTicks          = tag.getInt("totalTicks");
         this.entityData.set(CURRENT_TICK, this.currentTick);
         this.clientSmoothTick    = this.currentTick;
         this.lastKnownServerTick = this.currentTick;

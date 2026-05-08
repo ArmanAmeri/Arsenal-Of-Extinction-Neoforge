@@ -8,7 +8,6 @@ import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
-import com.modishmonkee.arsenalofextinction.particle.ModParticles;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import java.util.ArrayList;
@@ -18,12 +17,12 @@ import java.util.List;
 @EventBusSubscriber(modid = ArsenalOfExtinction.MOD_ID)
 public class MushroomCloudManager {
 
-    private static final int    PARTICLES_PER_BURST         = 60;
-    private static final int    CLOUD_DURATION_TICKS        = 260;
-    private static final double SMOKE_EMIT_UNTIL            = 0.70;
-    private static final int    GROUND_SMOKE_MIN_PARTICLES  = 5;
-    private static final int    GROUND_SMOKE_MAX_PARTICLES  = 10;
-    private static final int    SHOCKWAVE_PARTICLE_COUNT    = 150;
+    private static final int    PARTICLES_PER_BURST        = 60;
+    private static final int    CLOUD_DURATION_TICKS       = 260;
+    private static final double SMOKE_EMIT_UNTIL           = 0.70;
+    private static final int    GROUND_SMOKE_MIN_PARTICLES = 5;
+    private static final int    GROUND_SMOKE_MAX_PARTICLES = 10;
+    private static final int    SHOCKWAVE_PARTICLE_COUNT   = 150;
 
     private static final List<MushroomCloud> activeClouds = new ArrayList<>();
 
@@ -66,37 +65,34 @@ public class MushroomCloudManager {
             age++;
             double progress = (double) age / CLOUD_DURATION_TICKS;
 
-            // Mushroom stem particles
+            // ── Shockwave — single burst on tick 1 only ───────────────────────
             if (age == 1) {
-                // First tick: spawn shockwave ring
                 for (ServerPlayer player : players) {
-                    for (int i = 0; i < SHOCKWAVE_PARTICLE_COUNT; i++) {
-                        level.sendParticles(player, ModParticles.MUSHROOM_SHOCKWAVE.get(),
-                                true, x, y, z, 1, 0, 0, 0, 0);
-                    }
+                    level.sendParticles(player, ModParticles.MUSHROOM_SHOCKWAVE.get(),
+                            true, x, y, z, SHOCKWAVE_PARTICLE_COUNT, 0, 0, 0, 0.0);
                 }
             }
 
-            // Ground smoke during early phase
+            // ── Ground smoke — emitted during early phase, tapering off ───────
             if (progress <= SMOKE_EMIT_UNTIL) {
-                int count = GROUND_SMOKE_MIN_PARTICLES +
-                        (int) (Math.random() * (GROUND_SMOKE_MAX_PARTICLES - GROUND_SMOKE_MIN_PARTICLES));
+                int smokeCount = (int)(GROUND_SMOKE_MAX_PARTICLES * (1.0 - progress / SMOKE_EMIT_UNTIL))
+                        + GROUND_SMOKE_MIN_PARTICLES;
                 for (ServerPlayer player : players) {
-                    for (int i = 0; i < count; i++) {
-                        level.sendParticles(player, ModParticles.MUSHROOM_GROUND_SMOKE.get(),
-                                true, x, y, z, 1, 0, 0, 0, 0);
-                    }
+                    level.sendParticles(player, ModParticles.MUSHROOM_GROUND_SMOKE.get(),
+                            true, x, y, z, smokeCount, 0, 0, 0, 0.0);
                 }
             }
 
-            // Main cloud stem and cap
+            // ── Stem only — handles both stem rise and cap curl internally ────
+            // No cap particle — the cap phase is baked into MUSHROOM_STEM's lifecycle
+            int stemCount = PARTICLES_PER_BURST;
+            if (progress > 0.75) {
+                double fade = 1.0 - (progress - 0.75) / 0.25;
+                stemCount = (int)(PARTICLES_PER_BURST * fade);
+            }
             for (ServerPlayer player : players) {
-                for (int i = 0; i < PARTICLES_PER_BURST; i++) {
-                    level.sendParticles(player, ModParticles.MUSHROOM_STEM.get(),
-                            true, x, y, z, 1, 0, 0, 0, 0);
-                    level.sendParticles(player, ModParticles.MUSHROOM_CAP.get(),
-                            true, x, y, z, 1, 0, 0, 0, 0);
-                }
+                level.sendParticles(player, ModParticles.MUSHROOM_STEM.get(),
+                        true, x, y, z, stemCount, 0, 0, 0, 0.0);
             }
         }
 
