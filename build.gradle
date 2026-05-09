@@ -18,7 +18,10 @@ sourceSets.main.resources {
     exclude("src/generated/**/.cache")
 }
 
-repositories {}
+repositories {
+    maven { url "https://maven.blamejared.com" }           // JEI
+    maven { url "https://maven.terraformersmc.com/releases" } // EMI
+}
 
 base {
     archivesName = mod_id
@@ -68,7 +71,15 @@ configurations {
     runtimeClasspath.extendsFrom localRuntime
 }
 
-dependencies {}
+dependencies {
+    // JEI (NeoForge)
+    compileOnly "mezz.jei:jei-1.21.1-neoforge-api:19.27.0.340"
+    localRuntime "mezz.jei:jei-1.21.1-neoforge:19.27.0.340"
+
+    // EMI
+    compileOnly "dev.emi:emi-neoforge:1.1.22+1.21.1:api"
+    localRuntime "dev.emi:emi-neoforge:1.1.22+1.21.1"
+}
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
     var replaceProperties = [
