@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "B": {
+      "item": "minecraft:beacon"
+    },
+    "N": {
+      "item": "minecraft:netherite_ingot"
+    },
+    "R": {
+      "item": "minecraft:redstone_block"
+    }
+  },
+  "pattern": [
+    "NRN",
+    "RBR",
+    "NRN"
+  ],
+  "result": {
+    "count": 1,
+    "id": "arsenalofextinction:nuke_caller"
+  }
+}

@@ -90,8 +90,8 @@ public class NukeTargetMapScreen extends Screen {
         this.crosshairScreenX = DISPLAY_SIZE / 2.0f;
         this.crosshairScreenZ = DISPLAY_SIZE / 2.0f;
 
-        Level level = Minecraft.getInstance().level;
         CompletableFuture.runAsync(() -> {
+            Level level = Minecraft.getInstance().level; // moved inside the lambda
             int[] colors = new int[MAP_PIXEL_SIZE * MAP_PIXEL_SIZE];
             sampleMapColors(level, colors);
             packedColors = colors;

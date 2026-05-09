@@ -13,7 +13,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
 
-@EventBusSubscriber(modid = ArsenalOfExtinction.MOD_ID)
+@EventBusSubscriber(modid = ArsenalOfExtinction.MOD_ID, value = Dist.CLIENT)
 public class ModClientEvents {
 
     @SubscribeEvent

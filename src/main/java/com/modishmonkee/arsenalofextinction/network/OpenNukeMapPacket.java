@@ -1,14 +1,11 @@
 package com.modishmonkee.arsenalofextinction.network;
 
 import com.modishmonkee.arsenalofextinction.ArsenalOfExtinction;
-import com.modishmonkee.arsenalofextinction.client.screen.NukeTargetMapScreen;
-import net.minecraft.client.Minecraft;
+import com.modishmonkee.arsenalofextinction.client.ClientPacketHandlers;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record OpenNukeMapPacket(double playerX, double playerY, double playerZ, float playerYaw)
@@ -36,11 +33,10 @@ public record OpenNukeMapPacket(double playerX, double playerY, double playerZ, 
     }
 
     public static void handle(OpenNukeMapPacket packet, IPayloadContext ctx) {
-        ctx.enqueueWork(() -> openScreen(packet.playerX(), packet.playerY(), packet.playerZ(), packet.playerYaw()));
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    private static void openScreen(double px, double py, double pz, float yaw) {
-        Minecraft.getInstance().setScreen(new NukeTargetMapScreen(px, py, pz, yaw));
+        ctx.enqueueWork(() ->
+                ClientPacketHandlers.openNukeMap(
+                        packet.playerX(), packet.playerY(), packet.playerZ(), packet.playerYaw()
+                )
+        );
     }
 }
